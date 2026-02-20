@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌍 GeoMestre Europa: Aprén Jugant!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --primary: #ff4d6d;
+            --secondary: #7209b7;
+            --accent: #4cc9f0;
+            --correct: #4ade80;
+            --wrong: #fb7185;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #a2d2ff 0%, #ffafcc 100%);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #2b2d42;
+        }
+
+        #game-container {
+            background: var(--white);
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: var(--secondary);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0px var(--accent);
+        }
+
+        .screen { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .screen.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Botons de menú */
+        .btn-main {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-main:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(255, 77, 109, 0.4);
+        }
+
+        .btn-main.alt { background: var(--secondary); }
+
+        /* Estils del Joc */
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .question-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 3px dashed var(--accent);
+        }
+
+        .country-name {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+            margin-top: 5px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: var(--white);
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: #edf2f7;
+            border-color: var(--accent);
+        }
+
+        .option-btn.correct {
+            background: var(--correct) !important;
+            color: white;
+            border-color: var(--correct);
+        }
+
+        .option-btn.wrong {
+            background: var(--wrong) !important;
+            color: white;
+            border-color: var(--wrong);
+        }
+
+        /* Barra de progrés */
+        .progress-bar {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        #progress-inner {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .alphabet-hint {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Pantalla Inici -->
+        <div id="screen-home" class="screen active">
+            <h1>🌍 GeoMestre</h1>
+            <p>Hola! Estàs preparada per a conquistar Europa?</p>
+            <div style="margin-top: 30px;">
+                <button class="btn-main" onclick="startGame('alphabet')">Repte Alfabètic (A-Z)</button>
+                <button class="btn-main alt" onclick="startGame('random')">Mode Aleatori</button>
+            </div>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 20px;">Aprén els països i les seues capitals</p>
+        </div>
+
+        <!-- Pantalla Joc -->
+        <div id="screen-game" class="screen">
+            <div class="stats">
+                <span id="game-mode-text">Mode: Alfabètic</span>
+                <span>Punts: <span id="score">0</span></span>
+            </div>
+            
+            <div class="question-box">
+                <div id="hint-text" class="alphabet-hint">Següent país en la llista...</div>
+                Quina és la capital de?
+                <span id="country-display" class="country-name">Espanya</span>
+            </div>
+
+            <div class="options-grid" id="options-container">
+                <!-- Els botons es generaran amb JS -->
+            </div>
+
+            <div class="progress-bar">
+                <div id="progress-inner"></div>
+            </div>
+        </div>
+
+        <!-- Pantalla Final -->
+        <div id="screen-result" class="screen">
+            <h1 id="result-title">Increïble!</h1>
+            <p id="result-text">Has completat el repte amb èxit.</p>
+            <div style="font-size: 3rem; margin: 20px 0;">🏆</div>
+            <button class="btn-main" onclick="location.reload()">Torna a jugar</button>
+        </div>
+    </div>
+
+    <script>
+        // Llista de països i capitals en Valencià
+        const countriesData = [
+            {n: "Albània", c: "Tirana"}, {n: "Alemanya", c: "Berlín"}, {n: "Andorra", c: "Andorra la Vella"},
+            {n: "Armènia", c: "Erevan"}, {n: "Àustria", c: "Viena"}, {n: "Azerbaidjan", c: "Bakú"},
+            {n: "Bèlgica", c: "Brussel·les"}, {n: "Bielorússia", c: "Minsk"}, {n: "Bòsnia i Hercegovina", c: "Sarajevo"},
+            {n: "Bulgària", c: "Sofia"}, {n: "Xipre", c: "Nicòsia"}, {n: "Ciutat del Vaticà", c: "Ciutat del Vaticà"},
+            {n: "Croàcia", c: "Zagreb"}, {n: "Dinamarca", c: "Copenhaguen"}, {n: "Eslovàquia", c: "Bratislava"},
+            {n: "Eslovènia", c: "Ljubljana"}, {n: "Espanya", c: "Madrid"}, {n: "Estònia", c: "Tallinn"},
+            {n: "Finlàndia", c: "Hèlsinki"}, {n: "França", c: "París"}, {n: "Geòrgia", c: "Tbilisi"},
+            {n: "Grècia", c: "Atenes"}, {n: "Hongria", c: "Budapest"}, {n: "Irlanda", c: "Dublín"},
+            {n: "Islàndia", c: "Reykjavík"}, {n: "Itàlia", c: "Roma"}, {n: "Kazakhstan", c: "Astanà"},
+            {n: "Letònia", c: "Riga"}, {n: "Liechtenstein", c: "Vaduz"}, {n: "Lituània", c: "Vílnius"},
+            {n: "Luxemburg", c: "Luxemburg"}, {n: "Macedònia del Nord", c: "Skopje"}, {n: "Malta", c: "La Valletta"},
+            {n: "Moldàvia", c: "Chisinau"}, {n: "Mònaco", c: "Mònaco"}, {n: "Montenegro", c: "Podgorica"},
+            {n: "Noruega", c: "Oslo"}, {n: "Països Baixos", c: "Amsterdam"}, {n: "Polònia", c: "Varsòvia"},
+            {n: "Portugal", c: "Lisboa"}, {n: "Regne Unit", c: "Londres"}, {n: "República Txeca", c: "Praga"},
+            {n: "Romania", c: "Bucarest"}, {n: "Rússia", c: "Moscou"}, {n: "San Marino", c: "San Marino"},
+            {n: "Sèrbia", c: "Belgrad"}, {n: "Suècia", c: "Estocolm"}, {n: "Suïssa", c: "Berna"},
+            {n: "Turquia", c: "Ankara"}, {n: "Ucraïna", c: "Kíiv"}
+        ].sort((a,b) => a.n.localeCompare('ca')); // Ordenat alfabèticament segons el valencià
+
+        let currentMode = 'alphabet';
+        let currentIndex = 0;
+        let score = 0;
+        let gameList = [];
+
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            score = 0;
+            currentIndex = 0;
+            document.getElementById('score').innerText = score;
+            
+            if(mode === 'alphabet') {
+                gameList = [...countriesData];
+                document.getElementById('game-mode-text').innerText = "Mode: Alfabètic 🔠";
+                document.getElementById('hint-text').style.display = 'block';
+            } else {
+                gameList = [...countriesData].sort(() => Math.random() - 0.5);
+                document.getElementById('game-mode-text').innerText = "Mode: Aleatori 🎲";
+                document.getElementById('hint-text').style.display = 'none';
+            }
+
+            showScreen('screen-game');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if(currentIndex >= gameList.length) {
+                endGame();
+                return;
+            }
+
+            const current = gameList[currentIndex];
+            document.getElementById('country-display').innerText = current.n;
+            
+            // Actualitzar progrés
+            const progress = (currentIndex / gameList.length) * 100;
+            document.getElementById('progress-inner').style.width = progress + "%";
+
+            // Crear opcions barrejades
+            let options = [current.c];
+            while(options.length < 4) {
+                let randomCap = countriesData[Math.floor(Math.random() * countriesData.length)].c;
+                if(!options.includes(randomCap)) options.push(randomCap);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(opt, current.c, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selected, correct, btn) {
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(b => b.disabled = true);
+
+            if(selected === correct) {
+                btn.classList.add('correct');
+                score += 10;
+                document.getElementById('score').innerText = score;
+                // Efecte visual d'èxit
+                confetti({
+                    particleCount: 40,
+                    spread: 60,
+                    origin: { y: 0.7 },
+                    colors: ['#4cc9f0', '#7209b7', '#ff4d6d']
+                });
+            } else {
+                btn.classList.add('wrong');
+                // Mostrar la correcta en verd perquè aprenga
+                buttons.forEach(b => {
+                    if(b.innerText === correct) b.classList.add('correct');
+                });
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                loadQuestion();
+            }, 1200);
+        }
+
+        function endGame() {
+            document.getElementById('progress-inner').style.width = "100%";
+            showScreen('screen-result');
+            
+            // Pluja de confeti final
+            var duration = 4 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+              confetti({
+                particleCount: 7,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#ff4d6d', '#7209b7']
+              });
+              confetti({
+                particleCount: 7,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#4cc9f0', '#4ade80']
+              });
+
+              if (Date.now() < end) {
+                requestAnimationFrame(frame);
+              }
+            }());
+        }
+    </script>
+</body>
+</html>
